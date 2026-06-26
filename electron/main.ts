@@ -3,11 +3,16 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TerminalManager } from './terminal/TerminalManager';
 import type { TerminalTileConfig } from './terminal/types';
+import { WorkspaceManager } from './workspace/WorkspaceManager';
+import type { Workspace } from './workspace/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 const terminalManager = new TerminalManager();
+const workspaceManager = new WorkspaceManager(
+  path.join(app.getPath('userData'), 'ai-dev-control-room')
+);
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -28,7 +33,39 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await workspaceManager.init();
+
+  ipcMain.handle('workspace:add', async (_event, repoPath: string) => {
+    if (typeof repoPath !== 'string' || !path.isAbsolute(repoPath)) {
+      throw new Error('repoPath must be an absolute string');
+    }
+    return workspaceManager.addWorkspace(repoPath);
+  });
+
+  ipcMain.handle('workspace:open', async (_event, workspaceId: string) => {
+    if (typeof workspaceId !== 'string') return null;
+    return workspaceManager.openWorkspace(workspaceId);
+  });
+
+  ipcMain.handle('workspace:list', async () => {
+    return workspaceManager.listWorkspaces();
+  });
+
+  ipcMain.handle('workspace:remove', async (_event, workspaceId: string) => {
+    if (typeof workspaceId !== 'string') return;
+    await workspaceManager.removeWorkspace(workspaceId);
+  });
+
+  ipcMain.handle('workspace:get-current', async () => {
+    return workspaceManager.getCurrentWorkspace();
+  });
+
+  ipcMain.handle('workspace:get-status', async (_event, workspaceId: string) => {
+    if (typeof workspaceId !== 'string') return 'error';
+    return workspaceManager.getWorkspaceStatus(workspaceId);
+  });
+
   ipcMain.handle('terminal:get-default-cwd', () => {
     return process.cwd();
   });

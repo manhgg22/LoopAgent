@@ -92,7 +92,11 @@ export class WorkspaceManager {
     const normalized = path.normalize(repoPath);
     const existing = this.state.workspaces.find((w) => path.normalize(w.repoPath).toLowerCase() === normalized.toLowerCase());
     if (existing) {
-      return this.openWorkspace(existing.id);
+      const opened = await this.openWorkspace(existing.id);
+      if (!opened) {
+        throw new Error('Failed to open existing workspace');
+      }
+      return opened;
     }
 
     const git = await checkGitRepo(normalized);
