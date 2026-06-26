@@ -78,8 +78,13 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('workspace:save-layout', async (_event, layout) => {
-    if (!layout?.workspaceId || typeof layout.workspaceId !== 'string') return;
-    await tileLayoutStorage.saveLayout(layout);
+    try {
+      await tileLayoutStorage.saveLayout(layout);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'invalid layout payload';
+      return { success: false, error: message };
+    }
   });
 
   ipcMain.handle('terminal:get-default-cwd', () => {

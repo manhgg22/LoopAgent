@@ -10,7 +10,9 @@
     "electron:dev": "vite",
     "electron:build": "npm run build && electron-builder",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "verify": "npm run test && npm run typecheck && npm run build"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.10.0",

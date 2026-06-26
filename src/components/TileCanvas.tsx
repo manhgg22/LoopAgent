@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useTerminalStore } from '../store/terminalStore';
 import type { TerminalTileState } from '../../electron/terminal/types';
@@ -11,29 +11,38 @@ export function TileCanvas() {
     currentWorkspace ? state.tilesByWorkspace[currentWorkspace.id] ?? [] : []
   );
   const restoreWorkspaceTiles = useTerminalStore((state) => state.restoreWorkspaceTiles);
+  const [layoutLoadedByWorkspace, setLayoutLoadedByWorkspace] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!currentWorkspace) return;
+
+    setLayoutLoadedByWorkspace((prev) => ({ ...prev, [currentWorkspace.id]: false }));
+
     let cancelled = false;
     window.workspaceApi.loadTileLayout(currentWorkspace.id).then(async (layout) => {
-      if (cancelled || layout.tiles.length === 0) return;
+      if (cancelled) return;
 
       const existingTiles = useTerminalStore.getState().tilesByWorkspace[currentWorkspace.id] ?? [];
       const hasActiveTiles = existingTiles.some((t) => t.status !== 'idle');
-      if (hasActiveTiles) return;
 
-      const restored: TerminalTileState[] = [];
-      for (const tile of layout.tiles) {
-        const result = await window.terminalApi.createTerminal({ ...tile, workspaceId: currentWorkspace.id });
-        restored.push({
-          ...tile,
-          workspaceId: currentWorkspace.id,
-          status: result.success ? 'running' : 'error',
-        });
+      if (layout.tiles.length > 0 && !hasActiveTiles) {
+        const restored: TerminalTileState[] = [];
+        for (const tile of layout.tiles) {
+          const result = await window.terminalApi.createTerminal({ ...tile, workspaceId: currentWorkspace.id });
+          restored.push({
+            ...tile,
+            workspaceId: currentWorkspace.id,
+            status: result.success ? 'running' : 'error',
+          });
+        }
+
+        if (!cancelled) {
+          restoreWorkspaceTiles(currentWorkspace.id, restored);
+        }
       }
 
       if (!cancelled) {
-        restoreWorkspaceTiles(currentWorkspace.id, restored);
+        setLayoutLoadedByWorkspace((prev) => ({ ...prev, [currentWorkspace.id]: true }));
       }
     });
     return () => {
@@ -43,9 +52,11 @@ export function TileCanvas() {
 
   useEffect(() => {
     if (!currentWorkspace) return;
+    if (!layoutLoadedByWorkspace[currentWorkspace.id]) return;
+
     const saveable = tiles.map(({ status, ...rest }) => rest);
     window.workspaceApi.saveTileLayout({ workspaceId: currentWorkspace.id, tiles: saveable });
-  }, [tiles, currentWorkspace?.id]);
+  }, [tiles, currentWorkspace?.id, layoutLoadedByWorkspace]);
 
   if (!currentWorkspace) {
     return (

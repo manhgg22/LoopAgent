@@ -19,7 +19,7 @@ declare global {
       getCurrentWorkspace(): Promise<Workspace | null>;
       getWorkspaceStatus(workspaceId: string): Promise<WorkspaceStatus>;
       loadTileLayout(workspaceId: string): Promise<StoredTileLayout>;
-      saveTileLayout(layout: StoredTileLayout): Promise<void>;
+      saveTileLayout(layout: StoredTileLayout): Promise<{ success: boolean; error?: string }>;
     };
   }
 }

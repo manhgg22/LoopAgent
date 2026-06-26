@@ -7,9 +7,11 @@ pnpm-lock.yaml
 
 # Build outputs
 dist/
+dist-electron/
 build/
 out/
 release/
+*.tsbuildinfo
 
 # Vite
 .vite/
