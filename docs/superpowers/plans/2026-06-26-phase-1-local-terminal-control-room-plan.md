@@ -72,7 +72,7 @@ ai-dev-control-room/
 
 **Interfaces:**
 - Consumes: none.
-- Produces: runnable npm project with scripts `dev`, `build`, `electron:dev`, `electron:build`, `test`.
+- Produces: runnable npm project with scripts `dev`, `build`, `electron:dev`, `electron:build`, `test`. `electron:dev` runs only `vite`, because `vite-plugin-electron` compiles and launches the main/preload processes automatically from `vite.config.ts`.
 
 - [ ] **Step 1: Write `package.json`**
 
@@ -86,7 +86,7 @@ ai-dev-control-room/
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "electron:dev": "concurrently \"npm run dev\" \"electron electron/main.ts\"",
+    "electron:dev": "vite",
     "electron:build": "npm run build && electron-builder",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -95,6 +95,7 @@ ai-dev-control-room/
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "@xterm/xterm": "^5.3.0",
+    "@xterm/addon-fit": "^0.10.0",
     "node-pty": "^1.0.0",
     "zustand": "^4.4.0"
   },
@@ -104,7 +105,6 @@ ai-dev-control-room/
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.16",
-    "concurrently": "^8.2.0",
     "electron": "^30.0.0",
     "electron-builder": "^24.0.0",
     "postcss": "^8.4.32",
@@ -324,6 +324,7 @@ export interface TerminalEvent {
 
 export interface IpcTerminalApi {
   createTerminal(tile: TerminalTileConfig): Promise<{ success: boolean; error?: string }>;
+  getDefaultCwd(): Promise<string>;
   writeInput(tileId: string, data: string): Promise<void>;
   resizeTerminal(tileId: string, cols: number, rows: number): Promise<void>;
   killTerminal(tileId: string): Promise<void>;
@@ -346,6 +347,7 @@ import type { TerminalEvent, TerminalTileConfig } from './terminal/types';
 contextBridge.exposeInMainWorld('terminalApi', {
   createTerminal: (tile: TerminalTileConfig) =>
     ipcRenderer.invoke('terminal:create', tile),
+  getDefaultCwd: () => ipcRenderer.invoke('terminal:get-default-cwd'),
   writeInput: (tileId: string, data: string) =>
     ipcRenderer.invoke('terminal:write-input', tileId, data),
   resizeTerminal: (tileId: string, cols: number, rows: number) =>
@@ -555,23 +557,26 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 vi.mock('../../electron/terminal/pty-spawn', () => ({
   spawnPty: vi.fn().mockImplementation(() => {
     const emitter = new (require('node:events').EventEmitter)();
+    let lastWrite = '';
     return {
       pid: 1234,
-      write: vi.fn((data: string) => emitter.emit('data', data)),
+      write: vi.fn((data: string) => {
+        lastWrite = data;
+        emitter.emit('data', data);
+      }),
+      getLastWrite: () => lastWrite,
       resize: vi.fn(),
       kill: vi.fn(() => emitter.emit('exit', 0, undefined)),
       onData: (handler: (data: string) => void) => emitter.on('data', handler),
       onExit: (handler: (code: number, signal?: number) => void) =>
-        emitter.on('exit', ({ exitCode, signal }: any) => handler(exitCode, signal)),
+        emitter.on('exit', (exitCode: number, signal?: number) => handler(exitCode, signal)),
     };
   }),
 }));
 
 describe('TerminalManager', () => {
-  it('creates a terminal and emits output', async () => {
+  it('creates a terminal with running status', async () => {
     const manager = new TerminalManager();
-    const events: any[] = [];
-    manager.on('event', (event) => events.push(event));
 
     const result = await manager.create({
       id: 't1',
@@ -584,9 +589,9 @@ describe('TerminalManager', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(events).toContainEqual(
-      expect.objectContaining({ tileId: 't1', type: 'output', data: '\r' })
-    );
+    expect(manager.list()).toHaveLength(1);
+    expect(manager.list()[0].status).toBe('running');
+    expect(manager.list()[0].pid).toBe(1234);
   });
 
   it('rejects relative cwd', async () => {
@@ -602,6 +607,25 @@ describe('TerminalManager', () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('absolute path');
+  });
+
+  it('writes startup command to PTY when command is provided', async () => {
+    const manager = new TerminalManager();
+
+    await manager.create({
+      id: 't3',
+      workspaceId: 'w1',
+      title: 'WithCommand',
+      role: 'plain',
+      cwd: process.cwd(),
+      shell: 'powershell.exe',
+      shellArgs: ['-NoLogo'],
+      command: 'Get-Date',
+    });
+
+    await wait(50);
+    const pty = (manager as any).processes.get('t3');
+    expect(pty.getLastWrite()).toBe('Get-Date\r');
   });
 });
 ```
@@ -666,6 +690,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle('terminal:get-default-cwd', () => {
+    return process.cwd();
+  });
+
   ipcMain.handle('terminal:create', async (_event, tile: TerminalTileConfig) => {
     if (!tile.id || !tile.workspaceId) {
       return { success: false, error: 'Missing tile/workspace id' };
@@ -816,6 +844,7 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
 ```tsx
 import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { useTerminalStore } from '../store/terminalStore';
 
@@ -826,6 +855,7 @@ interface TerminalTileProps {
 export function TerminalTile({ tileId }: TerminalTileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const { tiles, updateTile } = useTerminalStore();
   const tile = tiles.find((t) => t.id === tileId);
 
@@ -838,8 +868,12 @@ export function TerminalTile({ tileId }: TerminalTileProps) {
       fontSize: 14,
       theme: { background: '#0f172a', foreground: '#e2e8f0' },
     });
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    fitAddonRef.current = fitAddon;
 
     term.open(containerRef.current);
+    fitAddon.fit();
     term.focus();
     terminalRef.current = term;
 
@@ -858,9 +892,12 @@ export function TerminalTile({ tileId }: TerminalTileProps) {
     });
 
     const resizeObserver = new ResizeObserver(() => {
-      const dims = term.rows && term.cols ? { rows: term.rows, cols: term.cols } : null;
-      if (dims) {
-        window.terminalApi.resizeTerminal(tileId, dims.cols, dims.rows);
+      if (!fitAddonRef.current) return;
+      fitAddonRef.current.fit();
+      const cols = term.cols;
+      const rows = term.rows;
+      if (cols > 0 && rows > 0) {
+        window.terminalApi.resizeTerminal(tileId, cols, rows);
       }
     });
     resizeObserver.observe(containerRef.current);
@@ -871,6 +908,7 @@ export function TerminalTile({ tileId }: TerminalTileProps) {
       resizeObserver.disconnect();
       term.dispose();
       terminalRef.current = null;
+      fitAddonRef.current = null;
     };
   }, [tileId, updateTile]);
 
@@ -924,7 +962,7 @@ export function TileToolbar() {
     const tileId = `tile-${tileCounter}`;
     const workspaceId = 'default';
     const title = `PowerShell ${tileCounter}`;
-    const cwd = process.cwd().replace(/\\/g, '\\');
+    const cwd = await window.terminalApi.getDefaultCwd();
 
     const result = await window.terminalApi.createTerminal({
       id: tileId,
@@ -1267,4 +1305,4 @@ No placeholders such as "TBD", "TODO", "implement later", or "similar to Task N"
 
 ## Open Questions Before Coding
 
-None. The design doc is approved and Phase 1 scope is narrow enough to implement directly.
+None remaining. After the 5 technical fixes above, the plan aligns with the approved design doc, stays within Phase 1 scope, and is ready for implementation.
