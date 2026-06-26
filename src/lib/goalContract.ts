@@ -36,7 +36,7 @@ export function createDraftTask(workspaceId: string): DevTask {
   };
 }
 
-export function updateTask(task: DevTask, patch: Partial<GoalContract>): DevTask {
+export function updateTask(task: DevTask, patch: Partial<DevTask>): DevTask {
   return {
     ...task,
     ...patch,
