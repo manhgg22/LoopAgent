@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { TerminalEvent, TerminalTileConfig } from './terminal/types';
-import type { Workspace, WorkspaceStatus } from './workspace/types';
+import type { Workspace, WorkspaceStatus, StoredTileLayout } from './workspace/types';
 
 contextBridge.exposeInMainWorld('terminalApi', {
   createTerminal: (tile: TerminalTileConfig) =>
@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('workspaceApi', {
   removeWorkspace: (workspaceId: string) => ipcRenderer.invoke('workspace:remove', workspaceId),
   getCurrentWorkspace: () => ipcRenderer.invoke('workspace:get-current'),
   getWorkspaceStatus: (workspaceId: string) => ipcRenderer.invoke('workspace:get-status', workspaceId),
+  loadTileLayout: (workspaceId: string) => ipcRenderer.invoke('workspace:load-layout', workspaceId),
+  saveTileLayout: (layout: StoredTileLayout) => ipcRenderer.invoke('workspace:save-layout', layout),
 });
 
 declare global {
@@ -45,6 +47,8 @@ declare global {
       removeWorkspace(workspaceId: string): Promise<void>;
       getCurrentWorkspace(): Promise<Workspace | null>;
       getWorkspaceStatus(workspaceId: string): Promise<WorkspaceStatus>;
+      loadTileLayout(workspaceId: string): Promise<StoredTileLayout>;
+      saveTileLayout(layout: StoredTileLayout): Promise<void>;
     };
   }
 }

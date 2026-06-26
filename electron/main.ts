@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { TerminalManager } from './terminal/TerminalManager';
 import type { TerminalTileConfig } from './terminal/types';
 import { WorkspaceManager } from './workspace/WorkspaceManager';
+import { TileLayoutStorage } from './workspace/tileLayoutStorage';
 import type { Workspace } from './workspace/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -64,6 +65,21 @@ app.whenReady().then(async () => {
   ipcMain.handle('workspace:get-status', async (_event, workspaceId: string) => {
     if (typeof workspaceId !== 'string') return 'error';
     return workspaceManager.getWorkspaceStatus(workspaceId);
+  });
+
+  const tileLayoutStorage = new TileLayoutStorage(
+    path.join(app.getPath('userData'), 'ai-dev-control-room')
+  );
+
+  ipcMain.handle('workspace:load-layout', async (_event, workspaceId: string) => {
+    if (typeof workspaceId !== 'string') return { workspaceId, tiles: [] };
+    const data = await tileLayoutStorage.loadLayouts();
+    return data.layouts.find((l) => l.workspaceId === workspaceId) ?? { workspaceId, tiles: [] };
+  });
+
+  ipcMain.handle('workspace:save-layout', async (_event, layout) => {
+    if (!layout?.workspaceId || typeof layout.workspaceId !== 'string') return;
+    await tileLayoutStorage.saveLayout(layout);
   });
 
   ipcMain.handle('terminal:get-default-cwd', () => {

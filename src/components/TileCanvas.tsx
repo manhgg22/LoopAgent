@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useTerminalStore } from '../store/terminalStore';
 import { TerminalTile } from './TerminalTile';
@@ -8,6 +9,30 @@ export function TileCanvas() {
   const tiles = useTerminalStore((state) =>
     currentWorkspace ? state.tilesByWorkspace[currentWorkspace.id] ?? [] : []
   );
+  const restoreWorkspaceTiles = useTerminalStore((state) => state.restoreWorkspaceTiles);
+
+  useEffect(() => {
+    if (!currentWorkspace) return;
+    let cancelled = false;
+    window.workspaceApi.loadTileLayout(currentWorkspace.id).then((layout) => {
+      if (cancelled) return;
+      const restored = layout.tiles.map((t) => ({
+        ...t,
+        workspaceId: currentWorkspace.id,
+        status: 'idle' as const,
+      }));
+      restoreWorkspaceTiles(currentWorkspace.id, restored);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentWorkspace?.id, restoreWorkspaceTiles]);
+
+  useEffect(() => {
+    if (!currentWorkspace) return;
+    const saveable = tiles.map(({ status, ...rest }) => rest);
+    window.workspaceApi.saveTileLayout({ workspaceId: currentWorkspace.id, tiles: saveable });
+  }, [tiles, currentWorkspace?.id]);
 
   if (!currentWorkspace) {
     return (

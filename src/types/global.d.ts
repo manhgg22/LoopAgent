@@ -1,5 +1,5 @@
 import type { TerminalEvent, TerminalTileConfig } from '../../electron/terminal/types';
-import type { Workspace, WorkspaceStatus } from '../../electron/workspace/types';
+import type { Workspace, WorkspaceStatus, StoredTileLayout } from '../../electron/workspace/types';
 
 declare global {
   interface Window {
@@ -18,6 +18,8 @@ declare global {
       removeWorkspace(workspaceId: string): Promise<void>;
       getCurrentWorkspace(): Promise<Workspace | null>;
       getWorkspaceStatus(workspaceId: string): Promise<WorkspaceStatus>;
+      loadTileLayout(workspaceId: string): Promise<StoredTileLayout>;
+      saveTileLayout(layout: StoredTileLayout): Promise<void>;
     };
   }
 }

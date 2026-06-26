@@ -7,6 +7,7 @@ interface TerminalStore {
   removeTile: (workspaceId: string, tileId: string) => void;
   updateTile: (workspaceId: string, tileId: string, patch: Partial<TerminalTileState>) => void;
   setTilesForWorkspace: (workspaceId: string, tiles: TerminalTileState[]) => void;
+  restoreWorkspaceTiles: (workspaceId: string, tiles: TerminalTileState[]) => void;
 }
 
 export const useTerminalStore = create<TerminalStore>((set) => ({
@@ -35,6 +36,10 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
       },
     })),
   setTilesForWorkspace: (workspaceId, tiles) =>
+    set((state) => ({
+      tilesByWorkspace: { ...state.tilesByWorkspace, [workspaceId]: tiles },
+    })),
+  restoreWorkspaceTiles: (workspaceId, tiles) =>
     set((state) => ({
       tilesByWorkspace: { ...state.tilesByWorkspace, [workspaceId]: tiles },
     })),
