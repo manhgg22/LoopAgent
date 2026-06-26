@@ -2,7 +2,7 @@
 
 A local desktop control room for coordinating multiple AI coding agents through multiple terminal tiles.
 
-This repository is currently at **Phase 3 — Role Presets + Goal Panel**.
+This repository is currently at **Phase 4 — Verify Runner**.
 
 ## Phase 1 Features
 
@@ -45,6 +45,22 @@ This repository is currently at **Phase 3 — Role Presets + Goal Panel**.
 4. Fill in the Goal Contract fields.
 5. Click **Send to builder** (or another role) to write the generated prompt into that tile.
 6. Click **Copy** to copy the prompt to the clipboard instead.
+
+## Phase 4 Features
+
+- Run `scripts/verify.ps1` from the app with one click.
+- Detect missing verify script and report it clearly.
+- Show PASS / FAIL / MISSING / ERROR status.
+- Save verify output to `artifacts/evidence/<taskId>/<timestamp>-verify.txt`.
+- Goal Panel blocks "Mark Ready for Review" until verify passes.
+
+## Phase 4 Usage
+
+1. Make sure your workspace repo has `scripts/verify.ps1`.
+2. Open the workspace, create tiles, and fill the Goal Contract.
+3. Click **Run verify.ps1** in the Verify Runner panel on the right.
+4. View output and status. If PASS, click **Mark Ready for Review**.
+5. If the script is missing, the app suggests using Harness Setup (Phase 6).
 
 ## Requirements
 
