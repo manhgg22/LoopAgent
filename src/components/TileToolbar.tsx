@@ -1,16 +1,23 @@
+import { useWorkspaceStore } from '../store/workspaceStore';
 import { useTerminalStore } from '../store/terminalStore';
 
 let tileCounter = 0;
 
 export function TileToolbar() {
-  const { tiles, removeTile } = useTerminalStore();
+  const { currentWorkspace } = useWorkspaceStore();
+  const tiles = useTerminalStore((state) =>
+    currentWorkspace ? state.tilesByWorkspace[currentWorkspace.id] ?? [] : []
+  );
+  const removeTile = useTerminalStore((state) => state.removeTile);
+  const addTile = useTerminalStore((state) => state.addTile);
 
   const createTile = async () => {
+    if (!currentWorkspace) return;
     tileCounter += 1;
-    const tileId = `tile-${tileCounter}`;
-    const workspaceId = 'default';
-    const title = `PowerShell ${tileCounter}`;
-    const cwd = await window.terminalApi.getDefaultCwd();
+    const tileId = `tile-${Date.now()}-${tileCounter}`;
+    const workspaceId = currentWorkspace.id;
+    const title = `PowerShell ${tiles.length + 1}`;
+    const cwd = currentWorkspace.repoPath;
 
     const result = await window.terminalApi.createTerminal({
       id: tileId,
@@ -27,7 +34,7 @@ export function TileToolbar() {
       return;
     }
 
-    useTerminalStore.getState().addTile({
+    addTile(workspaceId, {
       id: tileId,
       workspaceId,
       title,
@@ -39,22 +46,26 @@ export function TileToolbar() {
     });
   };
 
+  const closeTile = async (tileId: string) => {
+    if (!currentWorkspace) return;
+    await window.terminalApi.killTerminal(tileId);
+    removeTile(currentWorkspace.id, tileId);
+  };
+
   return (
-    <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-700 bg-slate-800">
+    <div className="h-14 flex items-center gap-3 px-4 border-b border-slate-700 bg-slate-800">
       <button
         onClick={createTile}
-        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium"
+        disabled={!currentWorkspace}
+        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 rounded text-sm font-medium"
       >
         + New Terminal
       </button>
-      <div className="flex-1"></div>
+      <div className="flex-1" />
       {tiles.map((tile) => (
         <button
           key={tile.id}
-          onClick={() => {
-            window.terminalApi.killTerminal(tile.id);
-            removeTile(tile.id);
-          }}
+          onClick={() => closeTile(tile.id)}
           className="px-2 py-1 text-xs bg-red-600 hover:bg-red-500 rounded"
         >
           Close {tile.title}

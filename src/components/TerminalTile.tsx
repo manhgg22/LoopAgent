@@ -6,14 +6,17 @@ import { useTerminalStore } from '../store/terminalStore';
 
 interface TerminalTileProps {
   tileId: string;
+  workspaceId: string;
 }
 
-export function TerminalTile({ tileId }: TerminalTileProps) {
+export function TerminalTile({ tileId, workspaceId }: TerminalTileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const { tiles, updateTile } = useTerminalStore();
-  const tile = tiles.find((t) => t.id === tileId);
+  const updateTile = useTerminalStore((state) => state.updateTile);
+  const tile = useTerminalStore((state) =>
+    (state.tilesByWorkspace[workspaceId] ?? []).find((t) => t.id === tileId)
+  );
 
   useEffect(() => {
     if (!containerRef.current || terminalRef.current) return;
@@ -39,7 +42,7 @@ export function TerminalTile({ tileId }: TerminalTileProps) {
         term.write(event.data);
       }
       if (event.type === 'status' && typeof event.data === 'string') {
-        updateTile(tileId, { status: event.data as any });
+        updateTile(workspaceId, tileId, { status: event.data as any });
       }
     });
 
@@ -66,7 +69,7 @@ export function TerminalTile({ tileId }: TerminalTileProps) {
       terminalRef.current = null;
       fitAddonRef.current = null;
     };
-  }, [tileId, updateTile]);
+  }, [tileId, workspaceId, updateTile]);
 
   if (!tile) return null;
 
