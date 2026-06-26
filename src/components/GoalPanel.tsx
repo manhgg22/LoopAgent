@@ -2,17 +2,29 @@ import { useEffect } from 'react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useTaskStore } from '../store/taskStore';
 import { useTerminalStore } from '../store/terminalStore';
+import { useVerifyStore } from '../store/verifyStore';
 import { generateRolePrompt } from '../lib/promptGenerator';
 import type { GoalContract } from '../lib/goalContract';
 import { ROLES } from '../../electron/terminal/rolePresets';
 import type { TileRole } from '../../electron/terminal/types';
+import type { VerifyStatus } from '../../electron/verify/types';
 import { RoleBadge } from './RoleBadge';
+
+const STATUS_COLORS: Record<VerifyStatus, string> = {
+  pass: 'bg-green-600',
+  fail: 'bg-red-600',
+  missing: 'bg-yellow-600',
+  error: 'bg-red-700',
+};
 
 export function GoalPanel() {
   const { currentWorkspace } = useWorkspaceStore();
-  const { currentTask, startNewTask, updateCurrentTask } = useTaskStore();
+  const { currentTask, startNewTask, updateCurrentTask, advanceStatus } = useTaskStore();
   const tiles = useTerminalStore((state) =>
     currentWorkspace ? state.tilesByWorkspace[currentWorkspace.id] ?? [] : []
+  );
+  const latestVerify = useVerifyStore((state) =>
+    currentTask ? state.getLatestForTask(currentTask.id) : null
   );
 
   useEffect(() => {
@@ -60,8 +72,13 @@ export function GoalPanel() {
 
   return (
     <aside className="w-80 border-l border-slate-700 bg-slate-900 flex flex-col">
-      <div className="p-3 border-b border-slate-700">
+      <div className="p-3 border-b border-slate-700 flex justify-between items-center">
         <h2 className="text-sm font-semibold text-slate-200">Goal Contract</h2>
+        {latestVerify && (
+          <span className={`text-[10px] uppercase px-2 py-0.5 rounded text-white ${STATUS_COLORS[latestVerify.status]}`}>
+            {latestVerify.status}
+          </span>
+        )}
       </div>
       <div className="flex-1 overflow-auto p-3 space-y-3">
         {fields.map(({ key, label, rows }) => (
@@ -112,6 +129,16 @@ export function GoalPanel() {
             </button>
           </div>
         ))}
+        <button
+          onClick={() => advanceStatus('ready_for_review')}
+          disabled={latestVerify?.status !== 'pass'}
+          className="w-full px-2 py-1 text-xs bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 rounded"
+        >
+          Mark Ready for Review
+        </button>
+        {latestVerify?.status !== 'pass' && (
+          <p className="text-[10px] text-slate-500">Requires verify PASS.</p>
+        )}
       </div>
     </aside>
   );
