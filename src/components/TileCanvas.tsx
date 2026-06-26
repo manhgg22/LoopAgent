@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useTerminalStore } from '../store/terminalStore';
+import type { TerminalTileState } from '../../electron/terminal/types';
 import { TerminalTile } from './TerminalTile';
 import { TileToolbar } from './TileToolbar';
 
@@ -14,14 +15,26 @@ export function TileCanvas() {
   useEffect(() => {
     if (!currentWorkspace) return;
     let cancelled = false;
-    window.workspaceApi.loadTileLayout(currentWorkspace.id).then((layout) => {
-      if (cancelled) return;
-      const restored = layout.tiles.map((t) => ({
-        ...t,
-        workspaceId: currentWorkspace.id,
-        status: 'idle' as const,
-      }));
-      restoreWorkspaceTiles(currentWorkspace.id, restored);
+    window.workspaceApi.loadTileLayout(currentWorkspace.id).then(async (layout) => {
+      if (cancelled || layout.tiles.length === 0) return;
+
+      const existingTiles = useTerminalStore.getState().tilesByWorkspace[currentWorkspace.id] ?? [];
+      const hasActiveTiles = existingTiles.some((t) => t.status !== 'idle');
+      if (hasActiveTiles) return;
+
+      const restored: TerminalTileState[] = [];
+      for (const tile of layout.tiles) {
+        const result = await window.terminalApi.createTerminal({ ...tile, workspaceId: currentWorkspace.id });
+        restored.push({
+          ...tile,
+          workspaceId: currentWorkspace.id,
+          status: result.success ? 'running' : 'error',
+        });
+      }
+
+      if (!cancelled) {
+        restoreWorkspaceTiles(currentWorkspace.id, restored);
+      }
     });
     return () => {
       cancelled = true;
