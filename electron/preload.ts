@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { TerminalEvent, TerminalTileConfig } from './terminal/types';
 import type { Workspace, WorkspaceStatus, StoredTileLayout } from './workspace/types';
+import type { VerifyResult } from './verify/types';
 
 contextBridge.exposeInMainWorld('terminalApi', {
   createTerminal: (tile: TerminalTileConfig) =>
@@ -30,6 +31,11 @@ contextBridge.exposeInMainWorld('workspaceApi', {
   saveTileLayout: (layout: StoredTileLayout) => ipcRenderer.invoke('workspace:save-layout', layout),
 });
 
+contextBridge.exposeInMainWorld('verifyApi', {
+  runVerify: (workspaceId: string, taskId: string) =>
+    ipcRenderer.invoke('verify:run', workspaceId, taskId),
+});
+
 declare global {
   interface Window {
     terminalApi: {
@@ -49,6 +55,9 @@ declare global {
       getWorkspaceStatus(workspaceId: string): Promise<WorkspaceStatus>;
       loadTileLayout(workspaceId: string): Promise<StoredTileLayout>;
       saveTileLayout(layout: StoredTileLayout): Promise<{ success: boolean; error?: string }>;
+    };
+    verifyApi: {
+      runVerify(workspaceId: string, taskId: string): Promise<{ success: true; result: VerifyResult } | { success: false; error: string }>;
     };
   }
 }

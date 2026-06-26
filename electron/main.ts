@@ -6,6 +6,8 @@ import type { TerminalTileConfig } from './terminal/types';
 import { WorkspaceManager } from './workspace/WorkspaceManager';
 import { TileLayoutStorage } from './workspace/tileLayoutStorage';
 import type { Workspace } from './workspace/types';
+import { VerifyRunner } from './verify/VerifyRunner';
+import type { VerifyResult } from './verify/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -118,6 +120,30 @@ app.whenReady().then(async () => {
   ipcMain.handle('terminal:kill', async (_event, tileId: string) => {
     if (typeof tileId !== 'string') return;
     terminalManager.kill(tileId);
+  });
+
+  ipcMain.handle('verify:run', async (_event, workspaceId: string, taskId: string): Promise<{ success: true; result: VerifyResult } | { success: false; error: string }> => {
+    if (typeof workspaceId !== 'string' || typeof taskId !== 'string') {
+      return { success: false, error: 'workspaceId and taskId must be strings' };
+    }
+
+    const workspace = workspaceManager.getWorkspaceById(workspaceId);
+    if (!workspace) {
+      return { success: false, error: 'workspace not found' };
+    }
+
+    if (!path.isAbsolute(workspace.repoPath)) {
+      return { success: false, error: 'workspace repoPath must be absolute' };
+    }
+
+    try {
+      const runner = new VerifyRunner(workspace.repoPath);
+      const result = await runner.run(taskId, workspaceId);
+      return { success: true, result };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
+    }
   });
 
   terminalManager.on('event', (event) => {

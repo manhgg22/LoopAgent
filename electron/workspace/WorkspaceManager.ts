@@ -151,4 +151,8 @@ export class WorkspaceManager {
     const workspace = this.state.workspaces.find((w) => w.id === workspaceId);
     return workspace?.status ?? 'error';
   }
+
+  getWorkspaceById(workspaceId: string): Workspace | null {
+    return this.state.workspaces.find((w) => w.id === workspaceId) ?? null;
+  }
 }

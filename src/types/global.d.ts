@@ -1,5 +1,6 @@
 import type { TerminalEvent, TerminalTileConfig } from '../../electron/terminal/types';
 import type { Workspace, WorkspaceStatus, StoredTileLayout } from '../../electron/workspace/types';
+import type { VerifyResult } from '../../electron/verify/types';
 
 declare global {
   interface Window {
@@ -20,6 +21,9 @@ declare global {
       getWorkspaceStatus(workspaceId: string): Promise<WorkspaceStatus>;
       loadTileLayout(workspaceId: string): Promise<StoredTileLayout>;
       saveTileLayout(layout: StoredTileLayout): Promise<{ success: boolean; error?: string }>;
+    };
+    verifyApi: {
+      runVerify(workspaceId: string, taskId: string): Promise<{ success: true; result: VerifyResult } | { success: false; error: string }>;
     };
   }
 }
