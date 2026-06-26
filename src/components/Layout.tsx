@@ -1,13 +1,14 @@
 import { WorkspacePanel } from './WorkspacePanel';
 import { WorkspaceInfo } from './WorkspaceInfo';
 import { TileCanvas } from './TileCanvas';
+import { GoalPanel } from './GoalPanel';
 
 export function Layout() {
   return (
     <div className="h-screen flex flex-col">
       <header className="h-12 flex items-center px-4 border-b border-slate-700 bg-slate-900">
         <h1 className="text-lg font-bold">AI Dev Control Room</h1>
-        <span className="ml-3 text-xs text-slate-400">Phase 2 — Workspace Manager + Multiple Tiles</span>
+        <span className="ml-3 text-xs text-slate-400">Phase 3 — Role Presets + Goal Panel</span>
       </header>
       <div className="flex flex-1 min-h-0">
         <WorkspacePanel />
@@ -15,6 +16,7 @@ export function Layout() {
           <WorkspaceInfo />
           <TileCanvas />
         </main>
+        <GoalPanel />
       </div>
     </div>
   );
