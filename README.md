@@ -2,7 +2,7 @@
 
 A local desktop control room for coordinating multiple AI coding agents through multiple terminal tiles.
 
-This repository is currently at **Phase 1 — Local Terminal Control Room**.
+This repository is currently at **Phase 2 — Workspace Manager + Multiple Tiles**.
 
 ## Phase 1 Features
 
@@ -10,6 +10,24 @@ This repository is currently at **Phase 1 — Local Terminal Control Room**.
 - Multiple PowerShell terminal tiles powered by `xterm.js` and `node-pty`.
 - Realtime input/output streaming through secure Electron IPC.
 - Create and close terminals independently.
+
+## Phase 2 Features
+
+- Add/Open workspace from a local repo path.
+- Validate git repo and display current branch.
+- Warning if workspace is not a git repo.
+- Persist recent workspaces and tile layouts across app restarts.
+- Create multiple terminal tiles inside the current workspace.
+- Each tile defaults its working directory to the workspace repo path.
+
+## Phase 2 Usage
+
+1. Run `npm run electron:dev`.
+2. In the left sidebar, enter a repo path and click **Add**.
+3. The workspace appears in the list with its name, path, and branch (or warning).
+4. Click the workspace to open it.
+5. Click **+ New Terminal** to create PowerShell tiles bound to that workspace.
+6. Close and reopen the app; the recent workspace and tile layout are restored.
 
 ## Requirements
 
