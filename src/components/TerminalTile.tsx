@@ -3,6 +3,8 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { useTerminalStore } from '../store/terminalStore';
+import { ROLES } from '../../electron/terminal/rolePresets';
+import type { TileRole } from '../../electron/terminal/types';
 
 interface TerminalTileProps {
   tileId: string;
@@ -76,7 +78,18 @@ export function TerminalTile({ tileId, workspaceId }: TerminalTileProps) {
   return (
     <div className="flex flex-col h-full border border-slate-700 rounded bg-slate-900">
       <div className="flex items-center justify-between px-3 py-1 border-b border-slate-700 text-sm">
-        <span className="font-semibold text-slate-200">{tile.title}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-slate-200">{tile.title}</span>
+          <select
+            value={tile.role}
+            onChange={(e) => updateTile(workspaceId, tileId, { role: e.target.value as TileRole })}
+            className="text-xs bg-slate-800 border border-slate-600 rounded px-1 py-0.5"
+          >
+            {ROLES.map((role) => (
+              <option key={role} value={role}>{role}</option>
+            ))}
+          </select>
+        </div>
         <span className="text-xs text-slate-400">
           {tile.status} {tile.pid ? `(pid ${tile.pid})` : ''}
         </span>

@@ -66,4 +66,32 @@ describe('TileToolbar', () => {
       );
     });
   });
+
+  it('creates a plain tile by default', async () => {
+    render(<TileToolbar />);
+    fireEvent.click(screen.getByText('+ New Terminal'));
+
+    await vi.waitFor(() => {
+      expect(createTerminal).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'plain', shell: 'powershell.exe' })
+      );
+    });
+  });
+
+  it('uses the selected role preset when creating a tile', async () => {
+    render(<TileToolbar />);
+    fireEvent.change(screen.getByDisplayValue('plain'), { target: { value: 'builder' } });
+    fireEvent.click(screen.getByText('+ New Terminal'));
+
+    await vi.waitFor(() => {
+      expect(createTerminal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: 'builder',
+          title: 'Builder 1',
+          shell: 'powershell.exe',
+          command: 'claude',
+        })
+      );
+    });
+  });
 });

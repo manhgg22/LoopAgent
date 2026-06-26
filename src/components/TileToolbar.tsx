@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useTerminalStore } from '../store/terminalStore';
+import { ROLES, getRolePreset } from '../../electron/terminal/rolePresets';
+import type { TileRole } from '../../electron/terminal/types';
 
 let tileCounter = 0;
 
 export function TileToolbar() {
+  const [selectedRole, setSelectedRole] = useState<TileRole>('plain');
   const { currentWorkspace } = useWorkspaceStore();
   const tiles = useTerminalStore((state) =>
     currentWorkspace ? state.tilesByWorkspace[currentWorkspace.id] ?? [] : []
@@ -13,20 +17,22 @@ export function TileToolbar() {
 
   const createTile = async () => {
     if (!currentWorkspace) return;
+    const preset = getRolePreset(selectedRole);
     tileCounter += 1;
     const tileId = `tile-${Date.now()}-${tileCounter}`;
     const workspaceId = currentWorkspace.id;
-    const title = `PowerShell ${tiles.length + 1}`;
+    const title = `${preset.titlePrefix} ${tiles.length + 1}`;
     const cwd = currentWorkspace.repoPath;
 
     const result = await window.terminalApi.createTerminal({
       id: tileId,
       workspaceId,
       title,
-      role: 'plain',
+      role: preset.role,
       cwd,
-      shell: 'powershell.exe',
-      shellArgs: ['-NoLogo'],
+      shell: preset.shell,
+      shellArgs: preset.shellArgs,
+      command: preset.command,
     });
 
     if (!result.success) {
@@ -38,10 +44,11 @@ export function TileToolbar() {
       id: tileId,
       workspaceId,
       title,
-      role: 'plain',
+      role: preset.role,
       cwd,
-      shell: 'powershell.exe',
-      shellArgs: ['-NoLogo'],
+      shell: preset.shell,
+      shellArgs: preset.shellArgs,
+      command: preset.command,
       status: 'running',
     });
   };
@@ -54,6 +61,15 @@ export function TileToolbar() {
 
   return (
     <div className="h-14 flex items-center gap-3 px-4 border-b border-slate-700 bg-slate-800">
+      <select
+        value={selectedRole}
+        onChange={(e) => setSelectedRole(e.target.value as TileRole)}
+        className="text-sm bg-slate-900 border border-slate-600 rounded px-2 py-1"
+      >
+        {ROLES.map((role) => (
+          <option key={role} value={role}>{role}</option>
+        ))}
+      </select>
       <button
         onClick={createTile}
         disabled={!currentWorkspace}
