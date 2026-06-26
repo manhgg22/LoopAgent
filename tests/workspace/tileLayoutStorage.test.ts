@@ -19,7 +19,7 @@ describe('TileLayoutStorage', () => {
     const storage = new TileLayoutStorage(tmpDir);
     await storage.saveLayout({
       workspaceId: 'w1',
-      tiles: [{ id: 't1', title: 'PS', role: 'plain', cwd: 'C:\\repo', shell: 'powershell.exe', shellArgs: ['-NoLogo'] }],
+      tiles: [{ id: 't1', workspaceId: 'w1', title: 'PS', role: 'plain', cwd: 'C:\\repo', shell: 'powershell.exe', shellArgs: ['-NoLogo'] }],
     });
     const loaded = await storage.loadLayouts();
     expect(loaded.layouts).toHaveLength(1);

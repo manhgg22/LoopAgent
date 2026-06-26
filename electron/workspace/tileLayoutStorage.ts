@@ -32,10 +32,14 @@ export function validateLayoutPayload(layout: unknown): asserts layout is Stored
       throw new LayoutValidationError('each tile must be an object');
     }
 
-    const { id, title, role, cwd, shell, shellArgs } = tile as Partial<StoredTileLayout['tiles'][number]>;
+    const { id, workspaceId: tileWorkspaceId, title, role, cwd, shell, shellArgs, command } =
+      tile as Partial<StoredTileLayout['tiles'][number]>;
 
     if (typeof id !== 'string' || id.length === 0) {
       throw new LayoutValidationError('each tile must have a non-empty id');
+    }
+    if (tileWorkspaceId !== workspaceId) {
+      throw new LayoutValidationError('each tile workspaceId must match layout workspaceId');
     }
     if (typeof title !== 'string' || title.length === 0) {
       throw new LayoutValidationError('each tile must have a non-empty title');
@@ -51,6 +55,9 @@ export function validateLayoutPayload(layout: unknown): asserts layout is Stored
     }
     if (shellArgs !== undefined && !Array.isArray(shellArgs)) {
       throw new LayoutValidationError('shellArgs must be an array when provided');
+    }
+    if (command !== undefined && typeof command !== 'string') {
+      throw new LayoutValidationError('command must be a string when provided');
     }
   }
 }

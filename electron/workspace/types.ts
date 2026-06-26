@@ -19,6 +19,7 @@ export interface StoredTileLayout {
   workspaceId: string;
   tiles: Array<{
     id: string;
+    workspaceId: string;
     title: string;
     role: import('../terminal/types').TileRole;
     cwd: string;

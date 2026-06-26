@@ -11,6 +11,7 @@ function validLayout(): StoredTileLayout {
     tiles: [
       {
         id: 't1',
+        workspaceId: 'w1',
         title: 'PS1',
         role: 'plain',
         cwd: 'C:\\repo',
@@ -76,6 +77,24 @@ describe('validateLayoutPayload', () => {
   it('accepts missing shellArgs', () => {
     const layout = validLayout();
     delete (layout.tiles[0] as any).shellArgs;
+    expect(() => validateLayoutPayload(layout)).not.toThrow();
+  });
+
+  it('rejects tile workspaceId mismatch', () => {
+    const layout = validLayout();
+    (layout.tiles[0] as any).workspaceId = 'w2';
+    expect(() => validateLayoutPayload(layout)).toThrow('workspaceId');
+  });
+
+  it('rejects non-string command', () => {
+    const layout = validLayout();
+    (layout.tiles[0] as any).command = 123;
+    expect(() => validateLayoutPayload(layout)).toThrow('command');
+  });
+
+  it('accepts string command', () => {
+    const layout = validLayout();
+    layout.tiles[0].command = 'npm test';
     expect(() => validateLayoutPayload(layout)).not.toThrow();
   });
 });
