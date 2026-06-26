@@ -2,7 +2,7 @@
 
 A local desktop control room for coordinating multiple AI coding agents through multiple terminal tiles.
 
-This repository is currently at **Phase 2 — Workspace Manager + Multiple Tiles**.
+This repository is currently at **Phase 3 — Role Presets + Goal Panel**.
 
 ## Phase 1 Features
 
@@ -20,6 +20,14 @@ This repository is currently at **Phase 2 — Workspace Manager + Multiple Tiles
 - Create multiple terminal tiles inside the current workspace.
 - Each tile defaults its working directory to the workspace repo path.
 
+## Phase 3 Features
+
+- Assign a role to each terminal tile: Plain, Builder, Tester, Reviewer, Server, Verifier.
+- Role presets set the tile title and default startup command.
+- Goal Panel with Goal Contract form: TASK, GOAL, SCOPE, DO NOT, VERIFY, DONE WHEN, MAX LOOP.
+- Generate role-specific prompts from the contract.
+- Copy a prompt to clipboard or send it directly into the matching role tile.
+
 ## Phase 2 Usage
 
 1. Run `npm run electron:dev`.
@@ -28,6 +36,15 @@ This repository is currently at **Phase 2 — Workspace Manager + Multiple Tiles
 4. Click the workspace to open it.
 5. Click **+ New Terminal** to create PowerShell tiles bound to that workspace.
 6. Close and reopen the app; the recent workspace and tile layout are restored.
+
+## Phase 3 Usage
+
+1. Open a workspace.
+2. Select a role from the dropdown next to **+ New Terminal** and create tiles.
+3. Open the **Goal Panel** on the right.
+4. Fill in the Goal Contract fields.
+5. Click **Send to builder** (or another role) to write the generated prompt into that tile.
+6. Click **Copy** to copy the prompt to the clipboard instead.
 
 ## Requirements
 
